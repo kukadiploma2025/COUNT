@@ -35,7 +35,7 @@
         .style-urgent {
             color: #ffcc00;
             text-shadow: 0 0 30px rgba(255, 204, 0, 0.7);
-            font-size: 2.2rem;
+            font-size: 2.1rem;
             animation: pulse 1.5s infinite;
         }
 
@@ -52,6 +52,7 @@
             align-items: center;
             justify-content: center;
             margin: 15px 0;
+            cursor: pointer;
         }
 
         .car-mask {
@@ -97,13 +98,13 @@
 </head>
 <body>
 
-    <div id="mainTitle" onclick="handleSecretClick()" class="target-title style-normal mt-10 uppercase cursor-pointer">500 000!</div>
+    <div id="mainTitle" onclick="handleSecretReset()" class="target-title style-normal mt-10 uppercase cursor-pointer">500 000!</div>
     
-    <p id="remainingLabel" class="text-center text-gray-500 text-[10px] font-black tracking-[0.3em] uppercase mt-2">
-        ОСТАЛОСЬ: 500 000 ₸
+    <p id="remainingLabel" class="text-center text-gray-500 text-[10px] font-black tracking-[0.3em] uppercase mt-2 transition-all duration-300">
+        ОСТАЛОСЬ ОЧЕНЬ МНОГО
     </p>
 
-    <div class="paint-container">
+    <div class="paint-container" onclick="handleCarClick()">
         <div class="car-mask">
             <div id="paintLevel" class="liquid-fill"></div>
         </div>
@@ -124,43 +125,57 @@
         </button>
     </div>
 
-    <div class="flex justify-between px-10 mb-8 mt-auto opacity-40">
-        <span class="text-[9px] font-black text-blue-500 border-b-2 border-blue-500 pb-1">ЯНВ</span>
-        <span class="text-[9px] font-black text-gray-600">ФЕВ</span>
-        <span class="text-[9px] font-black text-gray-700">МАР</span>
-        <span class="text-[9px] font-black text-gray-800">АПР</span>
+    <div class="grid grid-cols-5 gap-1 px-6 mb-8 mt-auto opacity-40">
+        <div class="text-[8px] font-black text-blue-500 border-b-2 border-blue-500 pb-1 text-center">ЯНВ</div>
+        <div class="text-[8px] font-black text-gray-600 text-center">ФЕВ</div>
+        <div class="text-[8px] font-black text-gray-700 text-center">МАР</div>
+        <div class="text-[8px] font-black text-gray-800 text-center">АПР</div>
+        <div class="text-[8px] font-black text-gray-900 text-center">МАЙ</div>
     </div>
 
     <script>
         const GOAL = 500000;
         let currentTotal = 0;
-        let clickCount = 0;
-        let clickTimer;
+        let resetClicks = 0;
+        let carClicks = 0;
+        let resetTimer, carTimer;
 
         window.onload = () => {
             updateHeader();
             loadData();
-            if (window.Telegram?.WebApp) {
-                window.Telegram.WebApp.expand(); // Развернуть на весь экран в TG
-            }
+            if (window.Telegram?.WebApp) window.Telegram.WebApp.expand();
         };
 
-        // Секретный сброс (5 кликов)
-        function handleSecretClick() {
-            clickCount++;
-            clearTimeout(clickTimer);
-            clickTimer = setTimeout(() => { clickCount = 0; }, 1500);
+        function handleCarClick() {
+            carClicks++;
+            clearTimeout(carTimer);
+            carTimer = setTimeout(() => { carClicks = 0; }, 1000);
+            if (carClicks === 4) {
+                const remaining = Math.max(GOAL - currentTotal, 0);
+                const label = document.getElementById('remainingLabel');
+                label.innerText = `ОСТАЛОСЬ: ${remaining.toLocaleString()} ₸`;
+                label.classList.replace('text-gray-500', 'text-blue-400');
+                setTimeout(() => {
+                    label.innerText = "ОСТАЛОСЬ ОЧЕНЬ МНОГО";
+                    label.classList.replace('text-blue-400', 'text-gray-500');
+                }, 3000);
+                carClicks = 0;
+                if (window.Telegram?.WebApp) window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+            }
+        }
 
-            if (clickCount === 5) {
-                if (confirm("ОБНУЛИТЬ весь прогресс?")) {
+        function handleSecretReset() {
+            resetClicks++;
+            clearTimeout(resetTimer);
+            resetTimer = setTimeout(() => { resetClicks = 0; }, 1500);
+            if (resetClicks === 5) {
+                if (confirm("ОБНУЛИТЬ ВСЁ?")) {
                     currentTotal = 0;
                     localStorage.removeItem('totalSaved');
-                    if (window.Telegram?.WebApp?.CloudStorage) {
-                        window.Telegram.WebApp.CloudStorage.removeItem('totalSaved');
-                    }
+                    if (window.Telegram?.WebApp?.CloudStorage) window.Telegram.WebApp.CloudStorage.removeItem('totalSaved');
                     refreshUI();
                 }
-                clickCount = 0;
+                resetClicks = 0;
             }
         }
 
@@ -178,16 +193,10 @@
 
         function loadData() {
             const localValue = localStorage.getItem('totalSaved');
-            if (localValue) {
-                currentTotal = parseFloat(localValue);
-                refreshUI();
-            }
+            if (localValue) { currentTotal = parseFloat(localValue); refreshUI(); }
             if (window.Telegram?.WebApp?.CloudStorage) {
                 window.Telegram.WebApp.CloudStorage.getItem('totalSaved', (err, val) => {
-                    if (!err && val) {
-                        currentTotal = parseFloat(val);
-                        refreshUI();
-                    }
+                    if (!err && val) { currentTotal = parseFloat(val); refreshUI(); }
                 });
             }
         }
@@ -204,24 +213,15 @@
         function doPayment() {
             const amt = parseFloat(document.getElementById('sumInput').value);
             if (!amt || amt <= 0) return;
-
             currentTotal += amt;
             localStorage.setItem('totalSaved', currentTotal);
-            if (window.Telegram?.WebApp?.CloudStorage) {
-                window.Telegram.WebApp.CloudStorage.setItem('totalSaved', currentTotal.toString());
-            }
-
+            if (window.Telegram?.WebApp?.CloudStorage) window.Telegram.WebApp.CloudStorage.setItem('totalSaved', currentTotal.toString());
             refreshUI();
             clearForm();
-
-            if (window.Telegram?.WebApp) {
-                window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-            }
+            if (window.Telegram?.WebApp) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
         }
 
         function refreshUI() {
-            const remaining = Math.max(GOAL - currentTotal, 0);
-            document.getElementById('remainingLabel').innerText = `ОСТАЛОСЬ: ${remaining.toLocaleString()} ₸`;
             const fillPercent = Math.min((currentTotal / GOAL) * 100, 100);
             document.getElementById('paintLevel').style.height = fillPercent + '%';
         }
