@@ -3,8 +3,8 @@
   "short_name": "Машина",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#0f0f0f",
-  "theme_color": "#0f0f0f",
+  "background_color": "#0b0b0b",
+  "theme_color": "#0b0b0b",
   "icons": [
     {
       "src": "car.png",
