@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Car Savings - Startup</title>
+    <title>Car Paint - Zero Start</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         body {
             background-color: #0b0b0b;
@@ -13,21 +12,26 @@
             font-family: 'Inter', sans-serif;
             margin: 0;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
         }
 
-        .target-title {
+        .target-red {
             color: #ff3b30;
             font-weight: 900;
             font-style: italic;
-            text-shadow: 0 0 20px rgba(255, 59, 48, 0.5);
-            letter-spacing: -2px;
+            text-shadow: 0 0 30px rgba(255, 59, 48, 0.6);
+            font-size: 4rem;
+            line-height: 1;
         }
 
-        /* Контейнер-маска для покраски машины */
-        .car-paint-area {
+        /* Контейнер для покраски */
+        .paint-box {
             position: relative;
             width: 100%;
-            height: 200px;
+            height: 300px;
+            /* Маска в форме машины */
             -webkit-mask-image: url('https://i.postimg.cc/9FmX7xH6/car-outline.png');
             mask-image: url('https://i.postimg.cc/9FmX7xH6/car-outline.png');
             -webkit-mask-size: contain;
@@ -35,145 +39,146 @@
             -webkit-mask-repeat: no-repeat;
             mask-repeat: no-repeat;
             -webkit-mask-position: center;
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.02); /* Пустая машина едва видна */
         }
 
-        .paint-wave {
+        .liquid-paint {
             position: absolute;
             bottom: 0;
             width: 100%;
-            height: 0%; /* Начинаем с нуля */
+            height: 0%; /* На старте 0 */
             background: linear-gradient(180deg, #007AFF 0%, #00f2ff 100%);
-            transition: height 1.5s ease-in-out;
-            box-shadow: 0 0 30px rgba(0, 122, 255, 0.4);
+            transition: height 2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 50px rgba(0, 122, 255, 0.5);
         }
 
-        .glass-card {
+        /* Анимация волны сверху краски */
+        .liquid-paint::after {
+            content: "";
+            position: absolute;
+            top: -10px;
+            left: 0;
+            width: 200%;
+            height: 20px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 100" preserveAspectRatio="none"><path d="M0,50 C150,100 350,0 500,50 C650,100 850,0 1000,50 L1000,100 L0,100 Z" fill="%23007AFF"/></svg>');
+            background-size: 50% 100%;
+            animation: waveFlow 3s linear infinite;
+        }
+
+        @keyframes waveFlow {
+            from { transform: translateX(0); }
+            to { transform: translateX(-50%); }
+        }
+
+        .glass-panel {
             background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            border-radius: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 24px;
         }
 
-        .btn-inactive {
+        .btn-lock {
             background: #1a1a1a !important;
-            color: #444 !important;
+            color: #333 !important;
             cursor: not-allowed;
+            border: 1px solid #222;
         }
 
-        @keyframes pulse-red {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.8; }
+        .input-sum {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-radius: 16px;
+            padding: 12px;
+            width: 100%;
+            outline: none;
+            transition: 0.3s;
         }
-        .animate-target { animation: pulse-red 2s infinite; }
+
+        .input-sum:focus {
+            border-color: #007AFF;
+        }
     </style>
 </head>
 <body>
 
-    <div class="flex flex-col h-screen p-6 max-w-md mx-auto justify-between">
+    <div class="p-6 flex flex-col h-full space-y-8 max-w-md mx-auto">
         
-        <div class="text-center pt-4">
-            <h1 class="text-6xl target-title animate-target mb-4">500 000!</h1>
+        <div class="text-center mt-4">
+            <div class="target-red italic uppercase">500 000!</div>
+            <div class="text-gray-600 text-[10px] tracking-[0.3em] font-bold mt-2 uppercase">Тенге до мечты</div>
+        </div>
+
+        <div class="flex-1 flex items-center justify-center relative">
+            <div class="paint-box">
+                <div id="liquid" class="liquid-paint"></div>
+            </div>
+            <img src="https://i.postimg.cc/9FmX7xH6/car-outline.png" class="absolute pointer-events-none opacity-10 w-full h-[300px] object-contain">
+        </div>
+
+        <div class="glass-panel space-y-4 mb-4">
+            <input type="number" id="sumField" placeholder="Сумма ₸" class="input-sum">
             
-            <div class="glass-card rounded-[32px] p-6 shadow-2xl">
-                <div class="text-gray-500 text-xs font-bold uppercase mb-2">Текущий баланс</div>
-                <div class="text-4xl font-black mb-6"><span id="balance">0</span> <span class="text-blue-500">₸</span></div>
-                
-                <input type="number" id="sumInput" placeholder="Введите сумму ₸" 
-                    class="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 mb-4 text-center focus:border-blue-500 outline-none transition-all">
-                
-                <input type="file" id="receiptFile" class="hidden" onchange="checkFile()">
-                <label for="receiptFile" id="fileLabel" class="flex items-center justify-center gap-2 w-full py-3 border border-dashed border-gray-700 rounded-xl text-gray-500 cursor-pointer hover:border-blue-500 transition-all mb-4">
-                    <span>📎 Прикрепить чек</span>
-                </label>
+            <input type="file" id="fileInp" class="hidden" onchange="unlock()">
+            <label for="fileInp" id="labelInp" class="flex items-center justify-center py-3 border border-dashed border-gray-700 rounded-2xl text-gray-500 text-sm cursor-pointer hover:border-blue-500 transition-all">
+                📎 Прикрепить чек
+            </label>
 
-                <button id="mainBtn" onclick="processPayment()" disabled class="btn-inactive w-full py-4 rounded-2xl font-bold transition-all uppercase tracking-widest">
-                    Пополнить копилку
-                </button>
-            </div>
+            <button id="sendBtn" onclick="fillCar()" disabled class="btn-lock w-full py-4 rounded-2xl font-black uppercase tracking-widest transition-all">
+                Пополнить
+            </button>
         </div>
 
-        <div class="relative flex flex-col items-center">
-            <div class="car-paint-area">
-                <div id="paint" class="paint-wave"></div>
-            </div>
-            <img src="https://i.postimg.cc/9FmX7xH6/car-outline.png" class="absolute top-0 w-full h-[200px] object-contain opacity-20 pointer-events-none">
-        </div>
-
-        <div class="flex justify-between gap-2 overflow-x-auto pb-4">
-            <div class="min-w-[70px] bg-blue-500/10 border border-blue-500/40 rounded-xl py-3 text-center">
-                <div class="text-[10px] text-blue-400 font-bold">ЯНВ</div>
-                <div class="text-xs">⏳</div>
-            </div>
-            <div class="min-w-[70px] bg-white/5 border border-white/10 rounded-xl py-3 text-center opacity-40">
-                <div class="text-[10px] text-gray-400 font-bold">ФЕВ</div>
-                <div class="text-xs">○</div>
-            </div>
-            <div class="min-w-[70px] bg-white/5 border border-white/10 rounded-xl py-3 text-center opacity-40">
-                <div class="text-[10px] text-gray-400 font-bold">МАР</div>
-                <div class="text-xs">○</div>
-            </div>
-            <div class="min-w-[70px] bg-white/5 border border-white/10 rounded-xl py-3 text-center opacity-40">
-                <div class="text-[10px] text-gray-400 font-bold">АПР</div>
-                <div class="text-xs">○</div>
-            </div>
+        <div class="flex justify-between items-center px-2 opacity-50">
+            <span class="text-[10px] font-bold text-blue-500 border-b border-blue-500">ЯНВАРЬ</span>
+            <span class="text-[10px] font-bold text-gray-700">ФЕВРАЛЬ</span>
+            <span class="text-[10px] font-bold text-gray-700">МАРТ</span>
+            <span class="text-[10px] font-bold text-gray-700">АПРЕЛЬ</span>
         </div>
     </div>
 
     <script>
-        let currentBalance = 0;
-        const goal = 500000;
+        let total = 0;
+        const GOAL = 500000;
 
-        function checkFile() {
-            const file = document.getElementById('receiptFile').files[0];
-            const btn = document.getElementById('mainBtn');
-            const label = document.getElementById('fileLabel');
-            
-            if (file) {
-                btn.disabled = false;
-                btn.classList.remove('btn-inactive');
-                btn.classList.add('bg-blue-600', 'hover:bg-blue-500', 'shadow-[0_0_20px_rgba(0,122,255,0.4)]');
-                label.innerHTML = "✅ Чек загружен";
-                label.classList.add('text-green-400', 'border-green-500/50');
-            }
+        function unlock() {
+            const btn = document.getElementById('sendBtn');
+            const label = document.getElementById('labelInp');
+            btn.disabled = false;
+            btn.classList.remove('btn-lock');
+            btn.classList.add('bg-blue-600', 'text-white', 'shadow-[0_0_25px_rgba(0,122,255,0.4)]');
+            label.innerText = "✅ Чек готов";
+            label.classList.add('text-blue-400', 'border-blue-400');
         }
 
-        function processPayment() {
-            const input = document.getElementById('sumInput');
-            const val = parseInt(input.value);
+        function fillCar() {
+            const amount = parseInt(document.getElementById('sumField').value);
+            if (!amount || amount <= 0) return;
 
-            if (isNaN(val) || val <= 0) {
-                alert("Введите корректную сумму");
-                return;
-            }
-
-            currentBalance += val;
+            total += amount;
+            const fillHeight = Math.min((total / GOAL) * 100, 100);
             
-            // Обновляем текст
-            document.getElementById('balance').innerText = currentBalance.toLocaleString();
-            
-            // Обновляем покраску машины
-            const percent = Math.min((currentBalance / goal) * 100, 100);
-            document.getElementById('paint').style.height = percent + '%';
+            // Заливаем краску
+            document.getElementById('liquid').style.height = fillHeight + '%';
 
-            // Сброс формы для следующего раза
-            input.value = "";
-            resetButton();
+            // Сброс
+            document.getElementById('sumField').value = "";
+            document.getElementById('fileInp').value = "";
+            const btn = document.getElementById('sendBtn');
+            btn.disabled = true;
+            btn.className = "btn-lock w-full py-4 rounded-2xl font-black uppercase tracking-widest transition-all";
+            const label = document.getElementById('labelInp');
+            label.innerText = "📎 Прикрепить чек";
+            label.className = "flex items-center justify-center py-3 border border-dashed border-gray-700 rounded-2xl text-gray-500 text-sm cursor-pointer hover:border-blue-500 transition-all";
 
-            // Тактильный отклик для Telegram
+            // Haptic для TG
             if (window.Telegram?.WebApp) {
                 window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
             }
-        }
-
-        function resetButton() {
-            const btn = document.getElementById('mainBtn');
-            const label = document.getElementById('fileLabel');
-            document.getElementById('receiptFile').value = "";
-            
-            btn.disabled = true;
-            btn.className = "btn-inactive w-full py-4 rounded-2xl font-bold transition-all uppercase tracking-widest";
-            label.innerHTML = "📎 Прикрепить чек";
-            label.className = "flex items-center justify-center gap-2 w-full py-3 border border-dashed border-gray-700 rounded-xl text-gray-500 cursor-pointer hover:border-blue-500 transition-all mb-4";
         }
     </script>
 </body>
