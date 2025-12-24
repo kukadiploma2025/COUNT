@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Машина · До мая</title>
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,16 +13,28 @@
   <link rel="apple-touch-icon" href="car.png">
 
   <style>
+    :root {
+      --bg: #0b0b0b;
+      --card: #141414;
+      --accent: #1e90ff;
+      --text: #ffffff;
+      --muted: #9b9b9b;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
     body {
       margin: 0;
-      background: #0f0f0f;
-      color: white;
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
       height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      flex-direction: column;
+      padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
     }
 
     .car {
@@ -49,16 +61,22 @@
     .text {
       opacity: 0.85;
       margin-bottom: 20px;
+      text-align: center;
     }
 
     button {
-      background: #1e90ff;
+      background: var(--accent);
       border: none;
       color: white;
       padding: 12px 20px;
       border-radius: 12px;
       font-size: 16px;
       cursor: pointer;
+      margin-bottom: 10px;
+    }
+
+    input[type=file] {
+      display: none;
     }
   </style>
 </head>
@@ -75,12 +93,22 @@
 
   <button onclick="pay()">Я оплатил</button>
 
+  <input type="file" id="checkInput" accept="image/*">
+  <button onclick="document.getElementById('checkInput').click()">Загрузить чек</button>
+
+  <div id="checkStatus" style="margin-top:10px; opacity:.8; text-align:center;"></div>
+
+  <!-- Подключаем Tesseract.js -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
   <script>
     const TOTAL_MONTHS = 5; // до мая
+    const REQUIRED_MIN = 100000; // минимальный платёж
     let paidMonths = Number(localStorage.getItem('paidMonths') || 0);
 
     const fuel = document.getElementById('fuel');
     const status = document.getElementById('status');
+    const checkStatus = document.getElementById('checkStatus');
 
     function render() {
       const percent = Math.min((paidMonths / TOTAL_MONTHS) * 100, 100);
@@ -102,8 +130,45 @@
         paidMonths++;
         localStorage.setItem('paidMonths', paidMonths);
         render();
+        checkStatus.textContent = 'Платёж засчитан ✅';
       }
     }
+
+    // OCR для фото чека
+    document.getElementById('checkInput').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      checkStatus.textContent = 'Распознаю чек...';
+
+      const result = await Tesseract.recognize(
+        file,
+        'rus+eng',
+        { logger: m => console.log(m) }
+      );
+
+      const text = result.data.text;
+      console.log(text);
+
+      // ищем сумму типа: 100 000 ₸ / 100000 KZT
+      const match = text.match(/(\d[\d\s]{2,})\s?(₸|KZT|тг)/i);
+
+      if (match) {
+        const amount = parseInt(match[1].replace(/\s/g, ''));
+        checkStatus.textContent = `Найдена сумма: ${amount.toLocaleString()} ₸`;
+
+        if (amount >= REQUIRED_MIN) {
+          paidMonths++;
+          localStorage.setItem('paidMonths', paidMonths);
+          render();
+          checkStatus.textContent += ' ✅ Платёж засчитан';
+        } else {
+          checkStatus.textContent += ' ❌ Сумма меньше нужной';
+        }
+      } else {
+        checkStatus.textContent = '❌ Не удалось определить сумму';
+      }
+    });
 
     render();
 
@@ -111,6 +176,5 @@
       navigator.serviceWorker.register('sw.js');
     }
   </script>
-
 </body>
 </html>
