@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pension 7M</title>
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        body { 
+            background-color: #080808; color: white; 
+            font-family: -apple-system, system-ui, sans-serif; 
+            height: 100vh; display: flex; flex-direction: column; overflow: hidden; margin: 0;
+            padding-top: env(safe-area-inset-top);
+        }
+        .green-glow { color: #34c759; text-shadow: 0 0 30px rgba(52, 199, 89, 0.5); }
+        
+        .storage-box { 
+            position: relative; 
+            width: 220px; 
+            height: 220px; 
+            background: rgba(255, 255, 255, 0.03); 
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 40px;
+            overflow: hidden;
+        }
+        .fill-level { 
+            position: absolute; bottom: 0; width: 100%; height: 0%; 
+            background: linear-gradient(180deg, #34c759 0%, #1a5c2d 100%); 
+            transition: height 2s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+            box-shadow: 0 -5px 20px rgba(52, 199, 89, 0.4);
+        }
+        
+        .glass-card { background: rgba(255, 255, 255, 0.05); border-radius: 35px; border: 1px solid rgba(255,255,255,0.08); }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+</head>
+<body>
+
+    <div class="mt-10 px-8 text-center">
+        <p class="text-gray-500 text-[10px] font-black tracking-[0.5em] uppercase mb-2">ЦЕЛЬ: 7 000 000 ₸</p>
+        <h1 id="totalAmount" onclick="handleSecretReset()" class="text-4xl font-black green-glow tracking-tighter cursor-pointer">0 ₸</h1>
+    </div>
+
+    <div class="flex-grow flex items-center justify-center relative" onclick="handleBoxClick()">
+        <div class="storage-box">
+            <div id="paintLevel" class="fill-level"></div>
+        </div>
+        <div id="mainPercent" class="absolute text-xl font-black opacity-40 pointer-events-none">0%</div>
+    </div>
+
+    <div class="p-6 space-y-4 bg-[#0c0c0c] rounded-t-[50px] border-t border-white/10 pb-12 shadow-2xl">
+        
+        <div class="glass-card p-6">
+            <div class="text-center mb-6">
+                <p id="statusLabel" class="text-gray-500 text-[9px] font-bold uppercase mb-2">Введите полученный доход</p>
+                <div class="flex items-center justify-center gap-2">
+                    <input type="number" id="incomeInput" oninput="calculate()" pattern="\d*" inputmode="decimal" placeholder="0" 
+                        class="bg-transparent text-3xl font-black text-white outline-none text-center w-40">
+                    <span class="text-xl font-bold text-gray-600">₸</span>
+                </div>
+            </div>
+
+            <div class="bg-black/40 rounded-2xl p-4 border border-white/5 flex justify-between items-center mb-4">
+                <span class="text-[10px] font-black text-gray-500 uppercase">В пенсионку (10%)</span>
+                <span id="pensionResult" class="text-xl font-black text-[#34c759]">0 ₸</span>
+            </div>
+
+            <button onclick="savePension()" class="w-full py-4 rounded-2xl font-black bg-[#34c759] text-black uppercase tracking-widest text-[12px] active:scale-95 transition-all">
+                ПОДТВЕРДИТЬ ПЕРЕВОД
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const FINAL_GOAL = 7000000;
+        let totalSaved = parseFloat(localStorage.getItem('pension_v3_total')) || 0;
+        let currentCalc = 0;
+
+        function calculate() {
+            const income = parseFloat(document.getElementById('incomeInput').value) || 0;
+            currentCalc = Math.floor(income * 0.1); 
+            document.getElementById('pensionResult').innerText = currentCalc.toLocaleString() + " ₸";
+        }
+
+        function savePension() {
+            if (currentCalc <= 0) return;
+            totalSaved += currentCalc;
+            localStorage.setItem('pension_v3_total', totalSaved);
+            
+            document.getElementById('incomeInput').value = "";
+            document.getElementById('pensionResult').innerText = "0 ₸";
+            currentCalc = 0;
+
+            refreshUI();
+            if (window.navigator.vibrate) window.navigator.vibrate(50);
+        }
+
+        function refreshUI() {
+            document.getElementById('totalAmount').innerText = totalSaved.toLocaleString() + " ₸";
+            const fillPercent = (totalSaved / FINAL_GOAL) * 100;
+            const cappedPercent = Math.min(fillPercent, 100).toFixed(1);
+            document.getElementById('paintLevel').style.height = cappedPercent + '%';
+            document.getElementById('mainPercent').innerText = cappedPercent + '%';
+        }
+
+        // Секрет 1: 4 клика по квадрату = остаток
+        let boxClicks = 0;
+        function handleBoxClick() {
+            boxClicks++;
+            setTimeout(() => boxClicks = 0, 1000);
+            if (boxClicks === 4) {
+                const label = document.getElementById('statusLabel');
+                const rem = Math.max(FINAL_GOAL - totalSaved, 0);
+                label.innerText = `ОСТАЛОСЬ: ${rem.toLocaleString()} ₸`;
+                label.classList.replace('text-gray-500', 'text-[#34c759]');
+                setTimeout(() => {
+                    label.innerText = "Введите полученный доход";
+                    label.classList.replace('text-[#34c759]', 'text-gray-500');
+                }, 3000);
+            }
+        }
+
+        // Секрет 2: 5 кликов по сумме = сброс
+        let resetClicks = 0;
+        function handleSecretReset() {
+            resetClicks++;
+            setTimeout(() => resetClicks = 0, 1500);
+            if (resetClicks === 5) {
+                if(confirm("ВНИМАНИЕ! Сбросить весь прогресс пенсионки?")) {
+                    localStorage.removeItem('pension_v3_total');
+                    location.reload();
+                }
+            }
+        }
+
+        window.onload = loadData;
+        function loadData() { refreshUI(); }
+    </script>
+</body>
+</html>
