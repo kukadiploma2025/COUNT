@@ -3,180 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Car Tracker Final</title>
+    <title>Car Tracker Pro</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+
     <style>
-        body {
-            background-color: #0b0b0b;
-            color: white;
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-        }
-
-        .target-title {
-            font-weight: 900;
-            font-style: italic;
-            line-height: 1;
-            text-align: center;
-            transition: all 0.5s ease;
-        }
-
-        .style-normal {
-            color: #ff3b30;
-            text-shadow: 0 0 25px rgba(255, 59, 48, 0.6);
-            font-size: 3.5rem;
-        }
-
-        .style-urgent {
-            color: #ffcc00;
-            text-shadow: 0 0 30px rgba(255, 204, 0, 0.7);
-            font-size: 2.1rem;
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.7; transform: scale(0.95); }
-        }
-
-        .paint-container {
-            position: relative;
-            width: 100%;
-            height: 240px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 15px 0;
-            cursor: pointer;
-        }
-
-        .car-mask {
-            position: relative;
-            width: 90%;
-            height: 100%;
-            -webkit-mask-image: url('car-outline.png');
-            mask-image: url('car-outline.png');
-            -webkit-mask-size: contain;
-            mask-size: contain;
-            -webkit-mask-repeat: no-repeat;
-            mask-repeat: no-repeat;
-            -webkit-mask-position: center;
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .liquid-fill {
-            position: absolute;
-            bottom: 0;
-            width: 100%;
-            height: 0%;
-            background: linear-gradient(180deg, #007AFF 0%, #00f2ff 100%);
-            transition: height 2s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 0 40px rgba(0, 122, 255, 0.5);
-        }
-
-        .glass-ui {
-            background: rgba(255, 255, 255, 0.02);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 30px;
-            padding: 20px;
-            margin: 0 20px 20px 20px;
-        }
-
-        .btn-active {
-            background: #007AFF !important;
-            color: white !important;
-            box-shadow: 0 0 20px rgba(0, 122, 255, 0.4);
-            cursor: pointer !important;
-        }
+        body { background-color: #0b0b0b; color: white; font-family: 'Inter', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; margin: 0; }
+        .target-title { font-weight: 900; font-style: italic; text-align: center; transition: all 0.5s ease; }
+        .style-normal { color: #ff3b30; text-shadow: 0 0 25px rgba(255, 59, 48, 0.6); font-size: 3.5rem; }
+        .style-urgent { color: #ffcc00; text-shadow: 0 0 30px rgba(255, 204, 0, 0.7); font-size: 2.1rem; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(0.95); } }
+        
+        #authScreen { position: fixed; inset: 0; background: #0b0b0b; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+        .car-mask { position: relative; width: 90%; height: 240px; -webkit-mask-image: url('car-outline.png'); mask-image: url('car-outline.png'); -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; background: rgba(255, 255, 255, 0.05); }
+        .liquid-fill { position: absolute; bottom: 0; width: 100%; height: 0%; background: linear-gradient(180deg, #007AFF 0%, #00f2ff 100%); transition: height 2s ease; box-shadow: 0 0 40px rgba(0, 122, 255, 0.5); }
+        
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     </style>
 </head>
 <body>
 
-    <div id="mainTitle" onclick="handleSecretReset()" class="target-title style-normal mt-10 uppercase cursor-pointer">500 000!</div>
-    
-    <p id="remainingLabel" class="text-center text-gray-500 text-[10px] font-black tracking-[0.3em] uppercase mt-2 transition-all duration-300">
-        ОСТАЛОСЬ ОЧЕНЬ МНОГО
-    </p>
+    <div id="authScreen">
+        <h2 class="text-2xl font-black mb-6 uppercase tracking-widest text-blue-500">ЛИЧНЫЙ ДОСТУП</h2>
+        <input type="text" id="userKey" placeholder="ПРИДУМАЙТЕ КОД" class="w-full max-w-xs bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-center text-lg font-bold outline-none focus:border-blue-500 mb-4 text-white">
+        <button onclick="login()" class="w-full max-w-xs py-4 bg-blue-600 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-500 transition-all text-white">ВОЙТИ</button>
+        <p class="text-[10px] text-gray-600 mt-6 text-center uppercase tracking-widest">Введите любой код,<br>чтобы создать или войти в профиль</p>
+    </div>
 
-    <div class="paint-container" onclick="handleCarClick()">
-        <div class="car-mask">
-            <div id="paintLevel" class="liquid-fill"></div>
+    <div id="mainContent" class="hidden flex-col h-full">
+        <div id="mainTitle" onclick="handleSecretReset()" class="target-title style-normal mt-10 uppercase cursor-pointer">500 000!</div>
+        <p id="remainingLabel" class="text-center text-gray-500 text-[10px] font-black tracking-[0.3em] uppercase mt-2">ОСТАЛОСЬ ОЧЕНЬ МНОГО</p>
+
+        <div class="flex-grow flex items-center justify-center relative" onclick="handleCarClick()">
+            <div class="car-mask">
+                <div id="paintLevel" class="liquid-fill"></div>
+            </div>
+            <img src="car-outline.png" class="absolute pointer-events-none opacity-20 w-[90%] h-full object-contain">
         </div>
-        <img src="car-outline.png" class="absolute pointer-events-none opacity-20 w-[90%] h-full object-contain">
-    </div>
 
-    <div class="glass-ui space-y-4">
-        <input type="number" id="sumInput" placeholder="СУММА ПОПОЛНЕНИЯ ₸" 
-            class="w-full bg-black/50 border border-white/10 rounded-2xl py-4 text-center text-lg font-bold outline-none focus:border-blue-500 transition-all text-white">
-        
-        <input type="file" id="fileField" class="hidden" onchange="enableButton()">
-        <label for="fileField" id="fileStatus" class="flex items-center justify-center gap-2 w-full py-3 border border-dashed border-gray-700 rounded-2xl text-gray-500 text-[10px] font-bold cursor-pointer hover:border-blue-500 transition-all uppercase">
-            <span>📎 ПРИКРЕПИТЬ ЧЕК</span>
-        </label>
-
-        <button id="submitBtn" onclick="doPayment()" disabled class="w-full py-4 rounded-2xl font-black uppercase tracking-widest text-xs bg-[#1a1a1a] text-[#444] cursor-not-allowed transition-all">
-            ПОПОЛНИТЬ КОПИЛКУ
-        </button>
-    </div>
-
-    <div class="grid grid-cols-5 gap-1 px-6 mb-8 mt-auto opacity-40">
-        <div class="text-[8px] font-black text-blue-500 border-b-2 border-blue-500 pb-1 text-center">ЯНВ</div>
-        <div class="text-[8px] font-black text-gray-600 text-center">ФЕВ</div>
-        <div class="text-[8px] font-black text-gray-700 text-center">МАР</div>
-        <div class="text-[8px] font-black text-gray-800 text-center">АПР</div>
-        <div class="text-[8px] font-black text-gray-900 text-center">МАЙ</div>
+        <div class="p-6 space-y-4 bg-white/5 backdrop-blur-xl rounded-t-[40px] border-t border-white/10">
+            <input type="number" id="sumInput" placeholder="СУММА ПОПОЛНЕНИЯ ₸" class="w-full bg-black/50 border border-white/10 rounded-2xl py-4 text-center text-xl font-bold outline-none text-white focus:border-blue-500">
+            <button onclick="doPayment()" class="w-full py-4 rounded-2xl font-black bg-blue-600 text-white uppercase tracking-widest text-sm">ПОПОЛНИТЬ</button>
+            
+            <div class="grid grid-cols-5 gap-1 opacity-40 mt-2">
+                <div class="text-[8px] font-black text-center">ЯНВ</div>
+                <div class="text-[8px] font-black text-center">ФЕВ</div>
+                <div class="text-[8px] font-black text-center">МАР</div>
+                <div class="text-[8px] font-black text-center">АПР</div>
+                <div class="text-[8px] font-black text-center">МАЙ</div>
+            </div>
+        </div>
     </div>
 
     <script>
-        const GOAL = 500000;
-        let currentTotal = 0;
-        let resetClicks = 0;
-        let carClicks = 0;
-        let resetTimer, carTimer;
-
-        window.onload = () => {
-            updateHeader();
-            loadData();
-            if (window.Telegram?.WebApp) window.Telegram.WebApp.expand();
+        // Твоя конфигурация Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyD8PQ5zzhZ2-luL-pcBS0ByLh4PR0khOv4",
+            databaseURL: "https://car-count-cc4cd-default-rtdb.firebaseio.com",
+            projectId: "car-count-cc4cd",
         };
+        
+        // Инициализация
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        
+        let currentTotal = 0;
+        let userId = "";
 
-        function handleCarClick() {
-            carClicks++;
-            clearTimeout(carTimer);
-            carTimer = setTimeout(() => { carClicks = 0; }, 1000);
-            if (carClicks === 4) {
-                const remaining = Math.max(GOAL - currentTotal, 0);
-                const label = document.getElementById('remainingLabel');
-                label.innerText = `ОСТАЛОСЬ: ${remaining.toLocaleString()} ₸`;
-                label.classList.replace('text-gray-500', 'text-blue-400');
-                setTimeout(() => {
-                    label.innerText = "ОСТАЛОСЬ ОЧЕНЬ МНОГО";
-                    label.classList.replace('text-blue-400', 'text-gray-500');
-                }, 3000);
-                carClicks = 0;
-                if (window.Telegram?.WebApp) window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+        // Логин/Вход
+        function login() {
+            userId = document.getElementById('userKey').value.trim().toLowerCase();
+            if (userId.length < 3) {
+                alert("Код должен быть длиннее 3 символов");
+                return;
+            }
+
+            // Слушаем изменения в базе в реальном времени
+            db.ref('users/' + userId).on('value', (snapshot) => {
+                const data = snapshot.val();
+                currentTotal = data ? data.total : 0;
+                refreshUI();
+                document.getElementById('authScreen').classList.add('hidden');
+                document.getElementById('mainContent').classList.remove('hidden');
+            });
+        }
+
+        // Платёж
+        function doPayment() {
+            const input = document.getElementById('sumInput');
+            const amt = parseFloat(input.value);
+            if (!amt || amt <= 0) return;
+
+            currentTotal += amt;
+            // Отправляем в Google Cloud
+            db.ref('users/' + userId).set({ total: currentTotal });
+            
+            input.value = "";
+            if (window.Telegram?.WebApp) {
+                window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
             }
         }
 
-        function handleSecretReset() {
-            resetClicks++;
-            clearTimeout(resetTimer);
-            resetTimer = setTimeout(() => { resetClicks = 0; }, 1500);
-            if (resetClicks === 5) {
-                if (confirm("ОБНУЛИТЬ ВСЁ?")) {
-                    currentTotal = 0;
-                    localStorage.removeItem('totalSaved');
-                    if (window.Telegram?.WebApp?.CloudStorage) window.Telegram.WebApp.CloudStorage.removeItem('totalSaved');
-                    refreshUI();
-                }
-                resetClicks = 0;
-            }
+        function refreshUI() {
+            const fillPercent = Math.min((currentTotal / 500000) * 100, 100);
+            document.getElementById('paintLevel').style.height = fillPercent + '%';
+            updateHeader();
         }
 
         function updateHeader() {
@@ -191,51 +124,43 @@
             }
         }
 
-        function loadData() {
-            const localValue = localStorage.getItem('totalSaved');
-            if (localValue) { currentTotal = parseFloat(localValue); refreshUI(); }
-            if (window.Telegram?.WebApp?.CloudStorage) {
-                window.Telegram.WebApp.CloudStorage.getItem('totalSaved', (err, val) => {
-                    if (!err && val) { currentTotal = parseFloat(val); refreshUI(); }
-                });
+        // Секрет 1: 4 клика по машине показывают сумму
+        let carClicks = 0;
+        function handleCarClick() {
+            carClicks++;
+            setTimeout(() => carClicks = 0, 1000);
+            if (carClicks === 4) {
+                const label = document.getElementById('remainingLabel');
+                const rem = 500000 - currentTotal;
+                label.innerText = `ОСТАЛОСЬ: ${rem > 0 ? rem.toLocaleString() : 0} ₸`;
+                label.classList.replace('text-gray-500', 'text-blue-400');
+                setTimeout(() => {
+                    label.innerText = "ОСТАЛОСЬ ОЧЕНЬ МНОГО";
+                    label.classList.replace('text-blue-400', 'text-gray-500');
+                }, 3000);
+                if (window.Telegram?.WebApp) window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
             }
         }
 
-        function enableButton() {
-            const btn = document.getElementById('submitBtn');
-            const label = document.getElementById('fileStatus');
-            btn.disabled = false;
-            btn.classList.add('btn-active');
-            label.innerHTML = "✅ ЧЕК ЗАГРУЖЕН";
-            label.classList.add('text-blue-400', 'border-blue-400');
+        // Секрет 2: 5 кликов по 500 000 для сброса
+        let resetClicks = 0;
+        function handleSecretReset() {
+            resetClicks++;
+            setTimeout(() => resetClicks = 0, 1500);
+            if (resetClicks === 5) {
+                if (confirm("Обнулить прогресс для этого кода?")) {
+                    db.ref('users/' + userId).set({ total: 0 });
+                }
+                resetClicks = 0;
+            }
         }
 
-        function doPayment() {
-            const amt = parseFloat(document.getElementById('sumInput').value);
-            if (!amt || amt <= 0) return;
-            currentTotal += amt;
-            localStorage.setItem('totalSaved', currentTotal);
-            if (window.Telegram?.WebApp?.CloudStorage) window.Telegram.WebApp.CloudStorage.setItem('totalSaved', currentTotal.toString());
-            refreshUI();
-            clearForm();
-            if (window.Telegram?.WebApp) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-        }
-
-        function refreshUI() {
-            const fillPercent = Math.min((currentTotal / GOAL) * 100, 100);
-            document.getElementById('paintLevel').style.height = fillPercent + '%';
-        }
-
-        function clearForm() {
-            document.getElementById('sumInput').value = "";
-            document.getElementById('fileField').value = "";
-            const btn = document.getElementById('submitBtn');
-            btn.disabled = true;
-            btn.className = "w-full py-4 rounded-2xl font-black uppercase tracking-widest text-xs bg-[#1a1a1a] text-[#444] cursor-not-allowed transition-all";
-            const label = document.getElementById('fileStatus');
-            label.innerHTML = "📎 ПРИКРЕПИТЬ ЧЕК";
-            label.className = "flex items-center justify-center gap-2 w-full py-3 border border-dashed border-gray-700 rounded-2xl text-gray-500 text-[10px] font-bold cursor-pointer hover:border-blue-500 transition-all uppercase";
-        }
+        window.onload = () => {
+            if (window.Telegram?.WebApp) {
+                window.Telegram.WebApp.expand();
+                window.Telegram.WebApp.ready();
+            }
+        };
     </script>
 </body>
 </html>
