@@ -49,7 +49,7 @@
         
         input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         .btn-disabled { background-color: #1a1a1a; color: #444; }
-        .btn-active { background-color: #007AFF; color: white; }
+        .btn-active { background-color: #007AFF; color: white; box-shadow: 0 0 15px rgba(0, 122, 255, 0.3); }
     </style>
 </head>
 <body>
@@ -68,7 +68,7 @@
         <input type="number" id="sumInput" pattern="\d*" inputmode="decimal" placeholder="СУММА ПОПОЛНЕНИЯ ₸" class="w-full bg-black/50 border border-white/10 rounded-2xl py-4 text-center text-xl font-bold outline-none text-white focus:border-blue-500">
         
         <input type="file" id="fileField" class="hidden" onchange="fileUploaded()">
-        <label for="fileField" id="fileStatus" class="flex items-center justify-center gap-2 w-full py-3 border border-dashed border-gray-700 rounded-2xl text-gray-600 text-[10px] font-bold cursor-pointer uppercase">
+        <label for="fileField" id="fileStatus" class="flex items-center justify-center gap-2 w-full py-3 border border-dashed border-gray-700 rounded-2xl text-gray-600 text-[10px] font-bold cursor-pointer uppercase transition-all">
             <span>📎 ПРИКРЕПИТЬ ЧЕК</span>
         </label>
 
@@ -88,22 +88,9 @@
         const MONTHLY_GOAL = 100000;
         
         let currentTotal = 0;
-        let monthlyTotal = 0;
 
         function loadData() {
             currentTotal = parseFloat(localStorage.getItem('total_saved')) || 0;
-            monthlyTotal = parseFloat(localStorage.getItem('monthly_saved')) || 0;
-            
-            const now = new Date();
-            const currentMonthKey = now.getMonth() + "-" + now.getFullYear();
-            
-            if (localStorage.getItem('last_update_month') !== currentMonthKey) {
-                localStorage.setItem('prev_month_total', monthlyTotal);
-                monthlyTotal = 0;
-                localStorage.setItem('monthly_saved', 0);
-                localStorage.setItem('last_update_month', currentMonthKey);
-            }
-
             refreshUI();
             updateHeader();
         }
@@ -112,8 +99,9 @@
             const btn = document.getElementById('submitBtn');
             btn.disabled = false;
             btn.classList.replace('btn-disabled', 'btn-active');
-            document.getElementById('fileStatus').innerHTML = "✅ ЧЕК ВЫБРАН";
-            document.getElementById('fileStatus').classList.add('text-blue-500', 'border-blue-500');
+            const label = document.getElementById('fileStatus');
+            label.innerHTML = "✅ ЧЕК ПРИНЯТ";
+            label.classList.add('text-blue-500', 'border-blue-500');
         }
 
         function doPayment() {
@@ -121,14 +109,11 @@
             if (!val || val <= 0) return;
 
             currentTotal += val;
-            monthlyTotal += val;
-
             localStorage.setItem('total_saved', currentTotal);
-            localStorage.setItem('monthly_saved', monthlyTotal);
             
             resetForm();
             refreshUI();
-            updateHeader();
+            updateHeader(); // Текст заголовка обновится сразу
         }
 
         function refreshUI() {
@@ -137,29 +122,41 @@
         }
 
         function updateHeader() {
-            const day = new Date().getDate();
+            const now = new Date();
+            const day = now.getDate();
+            // Считаем номер месяца (Январь=1, Февраль=2 и т.д.)
+            const monthNumber = now.getMonth() + 1; 
+            
+            // Сколько должно быть накоплено к текущему моменту по плану
+            const requiredNow = monthNumber * MONTHLY_GOAL;
+            
             const title = document.getElementById('mainTitle');
-            const prevMonthTotal = parseFloat(localStorage.getItem('prev_month_total')) || 0;
 
-            if (day === 30) {
-                if (monthlyTotal < MONTHLY_GOAL) {
-                    title.innerText = "ОПЛАТИТЕ СЧЕТ!";
-                    title.className = "target-title style-urgent mt-12 uppercase";
-                } else {
+            // ЕСЛИ ПЛАН ВЫПОЛНЕН (с учетом аванса)
+            if (currentTotal >= requiredNow) {
+                if (day === 30) {
                     title.innerText = "ПЛАН ВЫПОЛНЕН!";
                     title.className = "target-title style-ok mt-12 uppercase";
+                } else if (day >= 1 && day <= 5) {
+                    title.innerText = "ПРИНЯТО ✅";
+                    title.className = "target-title style-ok mt-12 uppercase";
+                } else {
+                    title.innerText = "500 000!";
+                    title.className = "target-title style-normal mt-12 uppercase";
                 }
-            } else if (day >= 1 && day <= 5) {
-                if (prevMonthTotal < MONTHLY_GOAL && monthlyTotal < MONTHLY_GOAL) {
+            } 
+            // ЕСЛИ СУММЫ НЕ ХВАТАЕТ
+            else {
+                if (day === 30) {
+                    title.innerText = "ОПЛАТИТЕ СЧЕТ!";
+                    title.className = "target-title style-urgent mt-12 uppercase";
+                } else if (day >= 1 && day <= 5) {
                     title.innerText = "ВЫ НА ПРОСРОЧКЕ!";
                     title.className = "target-title style-late mt-12 uppercase";
                 } else {
-                    title.innerText = "ПРИНЯТО ✅";
-                    title.className = "target-title style-ok mt-12 uppercase";
+                    title.innerText = "500 000!";
+                    title.className = "target-title style-normal mt-12 uppercase";
                 }
-            } else {
-                title.innerText = "500 000!";
-                title.className = "target-title style-normal mt-12 uppercase";
             }
         }
 
@@ -169,8 +166,9 @@
             const btn = document.getElementById('submitBtn');
             btn.disabled = true;
             btn.className = "btn-disabled w-full py-4 rounded-2xl font-black uppercase tracking-widest text-sm";
-            document.getElementById('fileStatus').innerHTML = "📎 ПРИКРЕПИТЬ ЧЕК";
-            document.getElementById('fileStatus').className = "flex items-center justify-center gap-2 w-full py-3 border border-dashed border-gray-700 rounded-2xl text-gray-600 text-[10px] font-bold cursor-pointer uppercase";
+            const label = document.getElementById('fileStatus');
+            label.innerHTML = "📎 ПРИКРЕПИТЬ ЧЕК";
+            label.className = "flex items-center justify-center gap-2 w-full py-3 border border-dashed border-gray-700 rounded-2xl text-gray-600 text-[10px] font-bold cursor-pointer uppercase";
             document.activeElement.blur();
         }
 
@@ -195,7 +193,7 @@
             resetClicks++;
             setTimeout(() => resetClicks = 0, 1500);
             if (resetClicks === 5) {
-                if (confirm("Удалить весь прогресс из памяти телефона?")) {
+                if (confirm("Удалить все данные?")) {
                     localStorage.clear();
                     location.reload();
                 }
