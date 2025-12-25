@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Car Goal</title>
+    <title>Car Goal Pro</title>
 
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -15,23 +15,26 @@
         body { 
             background-color: #0b0b0b; 
             color: white; 
-            font-family: 'Inter', sans-serif; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
             height: 100vh; 
             display: flex; 
             flex-direction: column; 
             overflow: hidden; 
             margin: 0;
-            padding-top: env(safe-area-inset-top); /* Отступ для челки iPhone */
+            padding-top: env(safe-area-inset-top);
         }
         
-        .target-title { font-weight: 900; font-style: italic; text-align: center; transition: all 0.5s ease; }
-        .style-normal { color: #ff3b30; text-shadow: 0 0 25px rgba(255, 59, 48, 0.6); font-size: 3.5rem; }
-        .style-urgent { color: #ffcc00; text-shadow: 0 0 30px rgba(255, 204, 0, 0.7); font-size: 2.1rem; animation: pulse 1.5s infinite; }
+        .target-title { font-weight: 900; font-style: italic; text-align: center; transition: all 0.5s ease; line-height: 1.1; }
+        .style-normal { color: #ff3b30; text-shadow: 0 0 25px rgba(255, 59, 48, 0.6); font-size: 3.2rem; }
+        .style-urgent { color: #ffcc00; text-shadow: 0 0 30px rgba(255, 204, 0, 0.7); font-size: 2rem; animation: pulse 1.5s infinite; }
+        .style-late { color: #ff3b30; text-shadow: 0 0 35px #ff3b30; font-size: 2rem; animation: shake 0.5s infinite; }
+        .style-ok { color: #007AFF; text-shadow: 0 0 20px #007AFF; font-size: 2.5rem; }
         
         @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(0.95); } }
-
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+        
         .car-mask { 
-            position: relative; width: 90%; height: 240px; 
+            position: relative; width: 90%; height: 260px; 
             -webkit-mask-image: url('car-outline.png'); mask-image: url('car-outline.png'); 
             -webkit-mask-size: contain; mask-size: contain; 
             -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; 
@@ -43,17 +46,16 @@
             transition: height 2s cubic-bezier(0.4, 0, 0.2, 1); 
             box-shadow: 0 0 40px rgba(0, 122, 255, 0.5); 
         }
-
-        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         
-        /* Кнопка пополнения с эффектом нажатия */
-        .btn-pay:active { transform: scale(0.98); background-color: #0056b3; }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .btn-disabled { background-color: #1a1a1a; color: #444; }
+        .btn-active { background-color: #007AFF; color: white; }
     </style>
 </head>
 <body>
 
-    <div id="mainTitle" onclick="handleSecretReset()" class="target-title style-normal mt-10 uppercase cursor-pointer">500 000!</div>
-    <p id="remainingLabel" class="text-center text-gray-500 text-[10px] font-black tracking-[0.3em] uppercase mt-2">ОСТАЛОСЬ ОЧЕНЬ МНОГО</p>
+    <div id="mainTitle" onclick="handleSecretReset()" class="target-title style-normal mt-12 uppercase cursor-pointer">500 000!</div>
+    <p id="infoLabel" class="text-center text-gray-700 text-[10px] font-black tracking-[0.3em] uppercase mt-4">В ПРОЦЕССЕ...</p>
 
     <div class="flex-grow flex items-center justify-center relative" onclick="handleCarClick()">
         <div class="car-mask">
@@ -62,61 +64,114 @@
         <img src="car-outline.png" class="absolute pointer-events-none opacity-20 w-[90%] h-full object-contain">
     </div>
 
-    <div class="p-6 space-y-4 bg-white/5 backdrop-blur-xl rounded-t-[40px] border-t border-white/10 pb-10">
+    <div class="p-6 space-y-4 bg-white/5 backdrop-blur-xl rounded-t-[40px] border-t border-white/10 pb-12">
         <input type="number" id="sumInput" pattern="\d*" inputmode="decimal" placeholder="СУММА ПОПОЛНЕНИЯ ₸" class="w-full bg-black/50 border border-white/10 rounded-2xl py-4 text-center text-xl font-bold outline-none text-white focus:border-blue-500">
-        <button onclick="doPayment()" class="btn-pay w-full py-4 rounded-2xl font-black bg-blue-600 text-white uppercase tracking-widest text-sm transition-all">ПОПОЛНИТЬ</button>
         
-        <div class="grid grid-cols-5 gap-1 opacity-40 mt-2">
-            <div class="text-[8px] font-black text-center text-blue-400">ЯНВ</div>
-            <div class="text-[8px] font-black text-center">ФЕВ</div>
-            <div class="text-[8px] font-black text-center">МАР</div>
-            <div class="text-[8px] font-black text-center">АПР</div>
-            <div class="text-[8px] font-black text-center">МАЙ</div>
+        <input type="file" id="fileField" class="hidden" onchange="fileUploaded()">
+        <label for="fileField" id="fileStatus" class="flex items-center justify-center gap-2 w-full py-3 border border-dashed border-gray-700 rounded-2xl text-gray-600 text-[10px] font-bold cursor-pointer uppercase">
+            <span>📎 ПРИКРЕПИТЬ ЧЕК</span>
+        </label>
+
+        <button id="submitBtn" onclick="doPayment()" disabled class="btn-disabled w-full py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition-all">ПОПОЛНИТЬ</button>
+        
+        <div class="grid grid-cols-5 gap-1 opacity-20 mt-2">
+            <div class="text-[8px] font-black text-center uppercase">ЯНВ</div>
+            <div class="text-[8px] font-black text-center uppercase">ФЕВ</div>
+            <div class="text-[8px] font-black text-center uppercase">МАР</div>
+            <div class="text-[8px] font-black text-center uppercase">АПР</div>
+            <div class="text-[8px] font-black text-center uppercase">МАЙ</div>
         </div>
     </div>
 
     <script>
         const GOAL = 500000;
+        const MONTHLY_GOAL = 100000;
+        
         let currentTotal = 0;
+        let monthlyTotal = 0;
 
-        // Загрузка данных из памяти браузера
         function loadData() {
-            const saved = localStorage.getItem('local_car_total');
-            if (saved) {
-                currentTotal = parseFloat(saved);
-                refreshUI();
+            currentTotal = parseFloat(localStorage.getItem('total_saved')) || 0;
+            monthlyTotal = parseFloat(localStorage.getItem('monthly_saved')) || 0;
+            
+            const now = new Date();
+            const currentMonthKey = now.getMonth() + "-" + now.getFullYear();
+            
+            if (localStorage.getItem('last_update_month') !== currentMonthKey) {
+                localStorage.setItem('prev_month_total', monthlyTotal);
+                monthlyTotal = 0;
+                localStorage.setItem('monthly_saved', 0);
+                localStorage.setItem('last_update_month', currentMonthKey);
             }
+
+            refreshUI();
+            updateHeader();
+        }
+
+        function fileUploaded() {
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = false;
+            btn.classList.replace('btn-disabled', 'btn-active');
+            document.getElementById('fileStatus').innerHTML = "✅ ЧЕК ВЫБРАН";
+            document.getElementById('fileStatus').classList.add('text-blue-500', 'border-blue-500');
         }
 
         function doPayment() {
-            const input = document.getElementById('sumInput');
-            const amt = parseFloat(input.value);
-            if (!amt || amt <= 0) return;
+            const val = parseFloat(document.getElementById('sumInput').value);
+            if (!val || val <= 0) return;
 
-            currentTotal += amt;
-            localStorage.setItem('local_car_total', currentTotal);
+            currentTotal += val;
+            monthlyTotal += val;
+
+            localStorage.setItem('total_saved', currentTotal);
+            localStorage.setItem('monthly_saved', monthlyTotal);
             
+            resetForm();
             refreshUI();
-            input.value = "";
-            input.blur(); // Скрыть клавиатуру
+            updateHeader();
         }
 
         function refreshUI() {
-            const fillPercent = Math.min((currentTotal / GOAL) * 100, 100);
-            document.getElementById('paintLevel').style.height = fillPercent + '%';
-            updateHeader();
+            const fill = Math.min((currentTotal / GOAL) * 100, 100);
+            document.getElementById('paintLevel').style.height = fill + '%';
         }
 
         function updateHeader() {
             const day = new Date().getDate();
             const title = document.getElementById('mainTitle');
+            const prevMonthTotal = parseFloat(localStorage.getItem('prev_month_total')) || 0;
+
             if (day === 30) {
-                title.innerText = "ОПЛАТИТЕ СУММУ!";
-                title.className = "target-title style-urgent mt-10 uppercase cursor-pointer";
+                if (monthlyTotal < MONTHLY_GOAL) {
+                    title.innerText = "ОПЛАТИТЕ СЧЕТ!";
+                    title.className = "target-title style-urgent mt-12 uppercase";
+                } else {
+                    title.innerText = "ПЛАН ВЫПОЛНЕН!";
+                    title.className = "target-title style-ok mt-12 uppercase";
+                }
+            } else if (day >= 1 && day <= 5) {
+                if (prevMonthTotal < MONTHLY_GOAL && monthlyTotal < MONTHLY_GOAL) {
+                    title.innerText = "ВЫ НА ПРОСРОЧКЕ!";
+                    title.className = "target-title style-late mt-12 uppercase";
+                } else {
+                    title.innerText = "ПРИНЯТО ✅";
+                    title.className = "target-title style-ok mt-12 uppercase";
+                }
             } else {
                 title.innerText = "500 000!";
-                title.className = "target-title style-normal mt-10 uppercase cursor-pointer";
+                title.className = "target-title style-normal mt-12 uppercase";
             }
+        }
+
+        function resetForm() {
+            document.getElementById('sumInput').value = "";
+            document.getElementById('fileField').value = "";
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.className = "btn-disabled w-full py-4 rounded-2xl font-black uppercase tracking-widest text-sm";
+            document.getElementById('fileStatus').innerHTML = "📎 ПРИКРЕПИТЬ ЧЕК";
+            document.getElementById('fileStatus').className = "flex items-center justify-center gap-2 w-full py-3 border border-dashed border-gray-700 rounded-2xl text-gray-600 text-[10px] font-bold cursor-pointer uppercase";
+            document.activeElement.blur();
         }
 
         let carClicks = 0;
@@ -124,13 +179,13 @@
             carClicks++;
             setTimeout(() => carClicks = 0, 1000);
             if (carClicks === 4) {
-                const label = document.getElementById('remainingLabel');
-                const rem = GOAL - currentTotal;
-                label.innerText = `ОСТАЛОСЬ: ${rem > 0 ? rem.toLocaleString() : 0} ₸`;
-                label.classList.replace('text-gray-500', 'text-blue-400');
+                const info = document.getElementById('infoLabel');
+                const rem = Math.max(GOAL - currentTotal, 0);
+                info.innerText = `ОСТАЛОСЬ: ${rem.toLocaleString()} ₸`;
+                info.classList.replace('text-gray-700', 'text-blue-500');
                 setTimeout(() => {
-                    label.innerText = "ОСТАЛОСЬ ОЧЕНЬ МНОГО";
-                    label.classList.replace('text-blue-400', 'text-gray-500');
+                    info.innerText = "В ПРОЦЕССЕ...";
+                    info.classList.replace('text-blue-500', 'text-gray-700');
                 }, 3000);
             }
         }
@@ -140,10 +195,9 @@
             resetClicks++;
             setTimeout(() => resetClicks = 0, 1500);
             if (resetClicks === 5) {
-                if (confirm("Сбросить весь прогресс в памяти этого телефона?")) {
-                    currentTotal = 0;
-                    localStorage.setItem('local_car_total', 0);
-                    refreshUI();
+                if (confirm("Удалить весь прогресс из памяти телефона?")) {
+                    localStorage.clear();
+                    location.reload();
                 }
             }
         }
